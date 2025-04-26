@@ -257,15 +257,24 @@ def slide_6():
     - Galamsey Pit and rivers in active mining areas consistently exceed safety thresholds
     """)
 
-# Pollution Risk Scores
+# Example data with more than 3 rivers
+data1 = {
+    'Sample': ['Densu River', 'Pra River', 'Ankobrah River', 'Volta River', 'Tano River', 'Offin River', 'Birim River'],
+    'pollution_risk_score': [11.2, 7.5, 3.4, 5.1, 4.2, 8.0, 2.9],
+    'exceedances_count': [5, 3, 2, 4, 3, 6, 1]
+}
+df_rivers1 = pd.DataFrame(data1)
+
+
 def slide_7():
     st.markdown("## Pollution Risk Scores")
 
-    # Sort rivers by their risk score
-    sorted_rivers = df_rivers.sort_values('pollution_risk_score', ascending=False)
+    # Assuming df_rivers is your DataFrame containing all rivers.
+    # Sort rivers by pollution risk score (descending)
+    sorted_rivers = df_rivers1.sort_values('pollution_risk_score', ascending=False)
 
-    # Bar chart showing pollution risk score by river
-    fig = px.bar(
+    # ---- BAR CHART: Pollution Risk Score by River ----
+    fig_bar = px.bar(
         sorted_rivers,
         x='Sample',
         y='pollution_risk_score',
@@ -273,49 +282,56 @@ def slide_7():
         color_continuous_scale='Reds',
         title="Pollution Risk Score by River"
     )
-    fig.update_layout(
+    fig_bar.update_layout(
         xaxis_title="River",
         yaxis_title="Risk Score",
+        xaxis_tickangle=45,
         xaxis={'categoryorder': 'total descending'}
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_bar, use_container_width=True)
 
-    # Split into two columns: bubble chart + explanation
-    col1, col2 = st.columns(2)
+    # ---- SPLIT: Bubble chart (left) + Text explanation (right) ----
+    col1, col2 = st.columns([1.3, 0.7])
 
     with col1:
-        bubble_fig = px.scatter(
-            df_rivers,
+        fig_scatter = px.scatter(
+            df_rivers1,
             x='exceedances_count',
             y='pollution_risk_score',
             size='pollution_risk_score',
             color='Sample',
             hover_name='Sample',
-            title="Exceedances Count vs. Risk Score",
+            title="Exceedances vs. Pollution Risk",
             labels={
                 'exceedances_count': 'No. of Standards Exceeded',
                 'pollution_risk_score': 'Risk Score'
             }
         )
-        st.plotly_chart(bubble_fig, use_container_width=True)
+        fig_scatter.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
+        fig_scatter.update_layout(
+            xaxis=dict(title='No. of Standards Exceeded'),
+            yaxis=dict(title='Pollution Risk Score')
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
 
     with col2:
         st.markdown("""
         ### 💡 How to Interpret the Risk Score
 
-        The **pollution risk score** is a single number that tells us how dangerous a water sample is. It's calculated based on:
-        - ✅ **How many pollutants** are above safe levels
-        - ⚠️ **How dangerous** each pollutant is (some are more toxic)
-        - 🔁 **How often** these exceedances happen
+        The **pollution risk score** tells us how dangerous a river sample is. It’s based on:
+        - ✅ How **many pollutants** exceed safe limits
+        - ⚠️ How **toxic** each pollutant is
+        - 🔁 How **frequently** the exceedances occur
 
-        #### What the scores mean:
-        - **🔴 Above 10** — Extremely polluted: unsafe for any use
-        - **🟠 5–10** — High pollution: unsafe for drinking or bathing
-        - **🟡 2–5** — Moderate pollution: water needs treatment
-        - **🟢 Below 2** — Low pollution: generally safe
+        #### Score Ranges:
+        - 🔴 **Above 10**: Extremely polluted
+        - 🟠 **5–10**: High pollution
+        - 🟡 **2–5**: Moderate pollution
+        - 🟢 **Below 2**: Low pollution
 
-        Rivers with the **highest scores** are the most urgent priorities for cleanup and protection.
+        Rivers with the highest scores need urgent action.
         """)
+
 
 # Health Impacts
 def slide_8():
@@ -866,20 +882,30 @@ slide_options = {
     "16: End of Presentation": slide_16
 }
 
-selected_slide = st.sidebar.radio("Go to slide:", list(slide_options.keys()))
+# Initialize session state for slide selection
+if "selected_slide" not in st.session_state:
+    st.session_state.selected_slide = list(slide_options.keys())[0]
+
+# Sidebar navigation
+st.sidebar.title("Presentation Navigation")
+
+selected = st.sidebar.radio("Go to slide:", list(slide_options.keys()), 
+                             index=list(slide_options.keys()).index(st.session_state.selected_slide))
+st.session_state.selected_slide = selected
+
 st.sidebar.markdown("---")
 
-# Show previous/next buttons
+# Previous/Next buttons
 col1, col2 = st.sidebar.columns(2)
-slide_num = int(selected_slide.split(":")[0])
+slide_num = int(st.session_state.selected_slide.split(":")[0])
 
 if col1.button("← Previous") and slide_num > 1:
-    selected_slide = f"{slide_num-1}: {list(slide_options.keys())[slide_num-2].split(': ')[1]}"
+    st.session_state.selected_slide = f"{slide_num-1}: {list(slide_options.keys())[slide_num-2].split(': ')[1]}"
     st.rerun()
 
 if col2.button("Next →") and slide_num < len(slide_options):
-    selected_slide = f"{slide_num+1}: {list(slide_options.keys())[slide_num].split(': ')[1]}"  
+    st.session_state.selected_slide = f"{slide_num+1}: {list(slide_options.keys())[slide_num].split(': ')[1]}"
     st.rerun()
 
 # Display the selected slide
-slide_options[selected_slide]()
+slide_options[st.session_state.selected_slide]()
